@@ -15,9 +15,13 @@ use tokio::task;
 mod templates;
 
 // Allowed origins - more permissive for production
-static ALLOWED_ORIGINS: Lazy<[&str; 2]> = Lazy::new(|| [
+static ALLOWED_ORIGINS: Lazy<[&str; 6]> = Lazy::new(|| [
     "http://localhost:5173",
-    "http://localhost:3000"
+    "http://localhost:3002",
+    "https://www.animehi.live",
+    "https://animehi.live",
+    "http://animehi.live",
+    "http://www.animehi.live",
 ]);
 
 // Reqwest client pool
@@ -462,7 +466,7 @@ async fn m3u8_proxy(req: HttpRequest) -> impl Responder {
 async fn main() -> std::io::Result<()> {
     dotenvy::dotenv().ok();
 
-    println!("We alive bois: http://127.0.0.1:8080");
+    println!("We alive bois: http://127.0.0.1:8082");
     if *ENABLE_CORS {
         println!("Allowed origins: {:?}", *ALLOWED_ORIGINS);
     }
@@ -475,7 +479,7 @@ async fn main() -> std::io::Result<()> {
             .route("/", actix_web::web::method(Method::OPTIONS).to(handle_options))
     })
     .workers(num_cpus::get())
-    .bind("0.0.0.0:8080")?
+    .bind("0.0.0.0:8082")?
     .run()
     .await
 }
