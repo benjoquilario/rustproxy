@@ -7,7 +7,7 @@ services:
     ports:
       - '8082:8082'
     environment:
-      - ENABLE_CORS=false
+      - ENABLE_CORS=true
     healthcheck:
       test: ['CMD-SHELL', 'curl -f http://localhost:8082/ || exit 0']
       interval: 30s
