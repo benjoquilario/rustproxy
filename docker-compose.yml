@@ -1,0 +1,34 @@
+services:
+  rust-proxy:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - '8083:8082'
+    environment:
+      - ENABLE_CORS=false
+    healthcheck:
+      test: ['CMD-SHELL', 'curl -f http://localhost:8082/ || exit 0']
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - dokploy-network
+    labels:
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.rust-proxy.rule=Host(`cors.animehi.live`)'
+      - 'traefik.http.routers.rust-proxy.entrypoints=web,websecure'
+      - 'traefik.http.services.rust-proxy.loadbalancer.server.port=8082'
+
+      - 'traefik.http.routers.rust-proxy.tls=true'
+      - 'traefik.http.routers.rust-proxy.tls.certresolver=le'
+      - 'traefik.http.routers.rust-proxy-http.rule=Host(`cors.animehi.live`)'
+      - 'traefik.http.routers.rust-proxy-http.entrypoints=web'
+      - 'traefik.http.routers.rust-proxy-http.middlewares=redirect-to-https'
+      - 'traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https'
+
+networks:
+  dokploy-network:
+    external: true
