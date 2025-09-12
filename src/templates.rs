@@ -163,13 +163,13 @@ static DOMAIN_GROUPS: Lazy<Vec<DomainGroup>> = Lazy::new(|| {
             custom_headers: None,
         },
         DomainGroup {
-            patterns: vec![r"(?i)lightningspark77\.pro$", r"(?i)thunderwave48\.xyz$", r"(?i)stormwatch95\.site$", r"(?i)windyrays29\.online$", r"(?i)thunderstrike77\.online$", r"(?i)lightningflash39\.live$", r"(?i)cloudburst82\.xyz$", r"(?i)drizzleshower19\.site$", r"(?i)rainstorm92\.xyz$"],
+            patterns: vec![r"(?i)lightningspark77\.pro$", r"(?i)thunderwave48\.xyz$", r"(?i)stormwatch95\.site$", r"(?i)windyrays29\.online$", r"(?i)thunderstrike77\.online$", r"(?i)lightningflash39\.live$", r"(?i)cloudburst82\.xyz$", r"(?i)drizzleshower19\.site$", r"(?i)rainstorm92\.xyz$", r"(?i)windytrail24\.online$", r"(?i)stormshade84\.live$"],
             origin: "https://megacloud.club",
             referer: "https://megacloud.club/",
             custom_headers: None,
         },
         DomainGroup {
-            patterns: vec![r"(?i)cloudburst99\.xyz$", r"(?i)frostywinds73\.pro$", r"(?i)stormwatch39\.live$", r"(?i)sunnybreeze16\.live$", r"(?i)mistydawn62\.pro$", r"(?i)lightningbolt21\.live$", r"(?i)gentlebreeze85\.xyz$"],
+            patterns: vec![r"(?i)cloudburst99\.xyz$", r"(?i)frostywinds73\.pro$", r"(?i)stormwatch39\.live$", r"(?i)sunnybreeze16\.live$", r"(?i)mistydawn62\.pro$", r"(?i)lightningbolt21\.live$", r"(?i)gentlebreeze85\.xyz$", r"(?i)windytrail24\.online$", r"(?i)stormshade84\.live$"],
             origin: "https://videostr.net",
             referer: "https://videostr.net/",            
             custom_headers: None,
