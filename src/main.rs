@@ -17,13 +17,13 @@ mod templates;
 
 // Allowed origins
 static ALLOWED_ORIGINS: Lazy<[&str; 7]> = Lazy::new(|| [
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "http://animehi.live",
     "http://localhost:3002",
-    "http://127.0.0.1:8080",
-    "https://www.animehi.live",
     "http://www.animehi.live",
+    "https://www.animehi.live",
+    "http://localhost:4000",
+    "https://animehi.live",
+    "http://animehi.live",
+    "http://127.0.0.1:8082"
 ]);
 
 // Reqwest client pool
