@@ -32,7 +32,6 @@ static DOMAIN_GROUPS: Lazy<Vec<DomainGroup>> = Lazy::new(|| {
                 r"(?i)\.padorupado\.ru$",
                 r"(?i)\.kwikie\.ru$",
                 r"(?i)\.owocdn\.top$",
-                r"(?i)kwik\.si$"
             ],
             origin: "https://kwik.si",
             referer: "https://kwik.si/",
@@ -40,7 +39,10 @@ static DOMAIN_GROUPS: Lazy<Vec<DomainGroup>> = Lazy::new(|| {
                 ("cache-control", "no-cache"),
                 ("pragma", "no-cache"),
                 ("sec-gpc", "1"),
-                ("user-agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1")
+                ("sec-ch-ua", "\"Chromium\";v=\"140\", \"Not=A?Brand\";v=\"24\", \"Brave\";v=\"140\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
             ])),
         },
         DomainGroup {
@@ -156,9 +158,14 @@ static DOMAIN_GROUPS: Lazy<Vec<DomainGroup>> = Lazy::new(|| {
         },
         DomainGroup {
             patterns: vec![r"(?i)\.vid-cdn\.xyz$"],
-            origin: "https://anizone.to/",
+            origin: "https://anizone.to",
             referer: "https://anizone.to/",
-            custom_headers: None,
+            custom_headers: Some(HashMap::from([
+                ("sec-ch-ua", "\"Chromium\";v=\"140\", \"Not=A?Brand\";v=\"24\", \"Brave\";v=\"140\""),
+                ("sec-ch-ua-mobile", "?0"),
+                ("sec-ch-ua-platform", "\"Windows\""),
+                ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
+            ])),
         },
         DomainGroup {
             patterns: vec![r"(?i)\.1stkmgv1\.com$"],
