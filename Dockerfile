@@ -11,6 +11,5 @@ FROM debian:bookworm-slim
 RUN apt-get update && apt-get install -y ca-certificates && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/target/release/rustProxy /usr/local/bin/rustProxy
-EXPOSE 8082
 
 CMD ["rustProxy"]
