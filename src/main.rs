@@ -16,7 +16,7 @@ use tokio::task;
 mod templates;
 
 // Allowed origins
-static ALLOWED_ORIGINS: Lazy<[&str; 6]> = Lazy::new(|| [
+static ALLOWED_ORIGINS: Lazy<[&str; 7]> = Lazy::new(|| [
     "http://localhost:5173",
     "http://localhost:3000",
     "http://animehi.live",
