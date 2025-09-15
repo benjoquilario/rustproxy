@@ -320,7 +320,9 @@ async fn m3u8_proxy(req: HttpRequest) -> impl Responder {
         let target_url_parsed = target_url_parsed.clone();
         let query = query.clone();
         move || {
-            let mut headers = templates::generate_headers_for_url(&target_url_parsed);
+            // Use custom origin for upstream request if provided in query (for top-level fetch only)
+            let custom_origin = query.get("origin").map(|s| s.as_str());
+            let mut headers = templates::generate_headers_for_url(&target_url_parsed, custom_origin);
 
             // Headers passthrough
             if let Some(header_json) = query.get("headers") {
@@ -333,12 +335,6 @@ async fn m3u8_proxy(req: HttpRequest) -> impl Responder {
                             headers.insert(name, value);
                         }
                     }
-                }
-            }
-
-            if let Some(origin_val) = query.get("origin") {
-                if let Ok(value) = HeaderValue::from_str(origin_val) {
-                    headers.insert("Origin", value);
                 }
             }
 
