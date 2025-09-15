@@ -31,7 +31,8 @@ static DOMAIN_GROUPS: Lazy<Vec<DomainGroup>> = Lazy::new(|| {
             patterns: vec![
                 r"(?i)\.padorupado\.ru$",
                 r"(?i)\.kwikie\.ru$",
-                r"(?i)\.owocdn\.top$"
+                r"(?i)\.owocdn\.top$",
+                r"(?i)kwik\.si$"
             ],
             origin: "https://kwik.si",
             referer: "https://kwik.si/",
