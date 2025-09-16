@@ -32,3 +32,5 @@ dist/
 
 # Rust project-specific
 /.cargo/
+
+.env

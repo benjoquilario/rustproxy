@@ -23,15 +23,37 @@ static ALLOWED_ORIGINS: Lazy<[&str; 5]> = Lazy::new(|| [
     "http://animehi.live",
 ]);
 
-// Reqwest client pool
+// Reqwest client pool with proxy support
 static CLIENT: Lazy<Client> = Lazy::new(|| {
-    Client::builder()
+    let mut builder = Client::builder()
         .pool_idle_timeout(std::time::Duration::from_secs(90))
         .http2_adaptive_window(true)
         .pool_max_idle_per_host(10)
-        .danger_accept_invalid_certs(true)  // Accept invalid SSL certificates
-        .build()
-        .expect("Failed to build reqwest client")
+        .danger_accept_invalid_certs(true);  // Accept invalid SSL certificates
+
+    // Add proxy configuration if available
+    if let (Ok(proxy_host), Ok(proxy_port)) = (
+        std::env::var("PROXY_HOST"),
+        std::env::var("PROXY_PORT").and_then(|p| p.parse::<u16>().map_err(|_| std::env::VarError::NotPresent))
+    ) {
+        let proxy_url = if let (Ok(username), Ok(password)) = (
+            std::env::var("PROXY_USERNAME"),
+            std::env::var("PROXY_PASSWORD")
+        ) {
+            format!("http://{}:{}@{}:{}", username, password, proxy_host, proxy_port)
+        } else {
+            format!("http://{}:{}", proxy_host, proxy_port)
+        };
+
+        if let Ok(proxy) = reqwest::Proxy::http(&proxy_url) {
+            builder = builder.proxy(proxy);
+        }
+        if let Ok(proxy) = reqwest::Proxy::https(&proxy_url) {
+            builder = builder.proxy(proxy);
+        }
+    }
+
+    builder.build().expect("Failed to build reqwest client")
 });
 
 static ENABLE_CORS: Lazy<bool> = Lazy::new(|| {
@@ -333,7 +355,13 @@ async fn m3u8_proxy(req: HttpRequest) -> impl Responder {
 
     // Fetch target
     let resp = match CLIENT.get(&target_url).headers(headers).send().await {
-        Ok(r) => r,
+        Ok(r) => {
+            // Log proxy usage if configured
+            if std::env::var("PROXY_HOST").is_ok() {
+                eprintln!("Request to {} routed through proxy", target_url);
+            }
+            r
+        },
         Err(e) => {
             eprintln!("Failed to fetch target URL {}: {:?}", target_url, e);
             return HttpResponse::InternalServerError().body("Failed to fetch target URL");
@@ -468,6 +496,20 @@ async fn main() -> std::io::Result<()> {
     println!("We alive bois: http://127.0.0.1:8082");
     if *ENABLE_CORS {
         println!("Allowed origins: {:?}", *ALLOWED_ORIGINS);
+    }
+
+    // Check and display proxy configuration
+    if let Ok(proxy_host) = std::env::var("PROXY_HOST") {
+        if let Ok(proxy_port) = std::env::var("PROXY_PORT") {
+            let proxy_info = if std::env::var("PROXY_USERNAME").is_ok() {
+                format!("{}:{} (with authentication)", proxy_host, proxy_port)
+            } else {
+                format!("{}:{} (no authentication)", proxy_host, proxy_port)
+            };
+            println!("Proxy configured: {}", proxy_info);
+        }
+    } else {
+        println!("No proxy configured - using direct connection");
     }
 
     HttpServer::new(|| {
