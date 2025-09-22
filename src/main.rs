@@ -23,15 +23,19 @@ static ALLOWED_ORIGINS: Lazy<[&str; 5]> = Lazy::new(|| [
     "http://animehi.live",
 ]);
 
-// Reqwest client pool with proxy support
-static CLIENT: Lazy<Client> = Lazy::new(|| {
-    let mut builder = Client::builder()
+// Direct client without proxy
+static CLIENT_DIRECT: Lazy<Client> = Lazy::new(|| {
+    Client::builder()
         .pool_idle_timeout(std::time::Duration::from_secs(90))
         .http2_adaptive_window(true)
         .pool_max_idle_per_host(10)
-        .danger_accept_invalid_certs(true);  // Accept invalid SSL certificates
+        .danger_accept_invalid_certs(true)
+        .build()
+        .expect("Failed to build direct reqwest client")
+});
 
-    // Add proxy configuration if available
+// Proxy client (only created if proxy is configured)
+static CLIENT_PROXY: Lazy<Option<Client>> = Lazy::new(|| {
     if let (Ok(proxy_host), Ok(proxy_port)) = (
         std::env::var("PROXY_HOST"),
         std::env::var("PROXY_PORT").and_then(|p| p.parse::<u16>().map_err(|_| std::env::VarError::NotPresent))
@@ -45,16 +49,37 @@ static CLIENT: Lazy<Client> = Lazy::new(|| {
             format!("http://{}:{}", proxy_host, proxy_port)
         };
 
+        let mut builder = Client::builder()
+            .pool_idle_timeout(std::time::Duration::from_secs(90))
+            .http2_adaptive_window(true)
+            .pool_max_idle_per_host(10)
+            .danger_accept_invalid_certs(true);
+
         if let Ok(proxy) = reqwest::Proxy::http(&proxy_url) {
             builder = builder.proxy(proxy);
         }
         if let Ok(proxy) = reqwest::Proxy::https(&proxy_url) {
             builder = builder.proxy(proxy);
         }
-    }
 
-    builder.build().expect("Failed to build reqwest client")
+        Some(builder.build().expect("Failed to build proxy reqwest client"))
+    } else {
+        None
+    }
 });
+
+// Helper function to get the appropriate client
+fn get_client(use_proxy: bool) -> &'static Client {
+    if use_proxy {
+        if let Some(ref proxy_client) = *CLIENT_PROXY {
+            proxy_client
+        } else {
+            &*CLIENT_DIRECT
+        }
+    } else {
+        &*CLIENT_DIRECT
+    }
+}
 
 static ENABLE_CORS: Lazy<bool> = Lazy::new(|| {
     std::env::var("ENABLE_CORS")
@@ -288,6 +313,11 @@ async fn m3u8_proxy(req: HttpRequest) -> impl Responder {
         return HttpResponse::Forbidden().finish();
     }
 
+    // Check proxy parameter
+    let use_proxy = query.get("proxy")
+        .map(|p| p == "true" || p == "1")
+        .unwrap_or(false);
+
     // Get and validate the URL
     let target_url = match query.get("url") {
         Some(u) => match validate_url(u) {
@@ -353,12 +383,19 @@ async fn m3u8_proxy(req: HttpRequest) -> impl Responder {
         headers.insert("If-Modified-Since", if_modified_since.clone());
     }
 
-    // Fetch target
-    let resp = match CLIENT.get(&target_url).headers(headers).send().await {
+    // Fetch target with selected client
+    let client = get_client(use_proxy);
+    let resp = match client.get(&target_url).headers(headers).send().await {
         Ok(r) => {
-            // Log proxy usage if configured
-            if std::env::var("PROXY_HOST").is_ok() {
-                eprintln!("Request to {} routed through proxy", target_url);
+            // Log proxy usage
+            if use_proxy {
+                if CLIENT_PROXY.is_some() {
+                    eprintln!("Request to {} routed through proxy", target_url);
+                } else {
+                    eprintln!("Request to {} - proxy requested but not configured, using direct", target_url);
+                }
+            } else {
+                eprintln!("Request to {} using direct connection", target_url);
             }
             r
         },
@@ -499,17 +536,20 @@ async fn main() -> std::io::Result<()> {
     }
 
     // Check and display proxy configuration
-    if let Ok(proxy_host) = std::env::var("PROXY_HOST") {
-        if let Ok(proxy_port) = std::env::var("PROXY_PORT") {
-            let proxy_info = if std::env::var("PROXY_USERNAME").is_ok() {
-                format!("{}:{} (with authentication)", proxy_host, proxy_port)
-            } else {
-                format!("{}:{} (no authentication)", proxy_host, proxy_port)
-            };
-            println!("Proxy configured: {}", proxy_info);
+    if let Some(_) = *CLIENT_PROXY {
+        if let Ok(proxy_host) = std::env::var("PROXY_HOST") {
+            if let Ok(proxy_port) = std::env::var("PROXY_PORT") {
+                let proxy_info = if std::env::var("PROXY_USERNAME").is_ok() {
+                    format!("{}:{} (with authentication)", proxy_host, proxy_port)
+                } else {
+                    format!("{}:{} (no authentication)", proxy_host, proxy_port)
+                };
+                println!("Proxy available: {}", proxy_info);
+                println!("Use ?proxy=true to enable proxy for requests");
+            }
         }
     } else {
-        println!("No proxy configured - using direct connection");
+        println!("No proxy configured - all requests will use direct connection");
     }
 
     HttpServer::new(|| {

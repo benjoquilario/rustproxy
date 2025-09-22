@@ -164,6 +164,7 @@ static DOMAIN_GROUPS: Lazy<Vec<DomainGroup>> = Lazy::new(|| {
                 ("sec-ch-ua", "\"Chromium\";v=\"140\", \"Not=A?Brand\";v=\"24\", \"Brave\";v=\"140\""),
                 ("sec-ch-ua-mobile", "?0"),
                 ("sec-ch-ua-platform", "\"Windows\""),
+                ("priority", "u=1, i"),
                 ("user-agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36")
             ])),
         },
@@ -174,7 +175,7 @@ static DOMAIN_GROUPS: Lazy<Vec<DomainGroup>> = Lazy::new(|| {
             custom_headers: None,
         },
         DomainGroup {
-            patterns: vec![r"(?i)lightningspark77\.pro$", r"(?i)thunderwave48\.xyz$", r"(?i)stormwatch95\.site$", r"(?i)windyrays29\.online$", r"(?i)thunderstrike77\.online$", r"(?i)lightningflash39\.live$", r"(?i)cloudburst82\.xyz$", r"(?i)drizzleshower19\.site$", r"(?i)rainstorm92\.xyz$", r"(?i)windytrail24\.online$", r"(?i)stormshade84\.live$"],
+            patterns: vec![r"(?i)lightningspark77\.pro$", r"(?i)thunderwave48\.xyz$", r"(?i)stormwatch95\.site$", r"(?i)windyrays29\.online$", r"(?i)thunderstrike77\.online$", r"(?i)lightningflash39\.live$", r"(?i)cloudburst82\.xyz$", r"(?i)drizzleshower19\.site$", r"(?i)rainstorm92\.xyz$", r"(?i)windytrail24\.online$", r"(?i)stormshade84\.live$", r"(?i)haildrop77\.pro$", r"(?i)rainveil36\.pro$", r"(?i)sunburst93\.live$", r"(?i)fogtwist21\.xyz$"],
             origin: "https://megacloud.club",
             referer: "https://megacloud.club/",
             custom_headers: None,
