@@ -15,45 +15,24 @@ use tokio::task;
 mod templates;
 
 // Allowed origins - more permissive for production
-static ALLOWED_ORIGINS: Lazy<[&str; 5]> = Lazy::new(|| [
+static ALLOWED_ORIGINS: Lazy<[&str; 6]> = Lazy::new(|| [
+    "http://localhost:5173",
     "http://localhost:3002",
-    "https://www.animehi.live",
     "http://www.animehi.live",
+    "https://www.animehi.live",
     "https://animehi.live",
     "http://animehi.live",
 ]);
 
 // Reqwest client pool
 static CLIENT: Lazy<Client> = Lazy::new(|| {
-    let mut builder = Client::builder()
+    Client::builder()
         .pool_idle_timeout(std::time::Duration::from_secs(90))
         .http2_adaptive_window(true)
         .pool_max_idle_per_host(10)
-        .danger_accept_invalid_certs(true);  // Accept invalid SSL certificates
-
-    // Add proxy configuration if available
-    if let (Ok(proxy_host), Ok(proxy_port)) = (
-        std::env::var("PROXY_HOST"),
-        std::env::var("PROXY_PORT").and_then(|p| p.parse::<u16>().map_err(|_| std::env::VarError::NotPresent))
-    ) {
-        let proxy_url = if let (Ok(username), Ok(password)) = (
-            std::env::var("PROXY_USERNAME"),
-            std::env::var("PROXY_PASSWORD")
-        ) {
-            format!("http://{}:{}@{}:{}", username, password, proxy_host, proxy_port)
-        } else {
-            format!("http://{}:{}", proxy_host, proxy_port)
-        };
-
-        if let Ok(proxy) = reqwest::Proxy::http(&proxy_url) {
-            builder = builder.proxy(proxy);
-        }
-        if let Ok(proxy) = reqwest::Proxy::https(&proxy_url) {
-            builder = builder.proxy(proxy);
-        }
-    }
-
-    builder.build().expect("Failed to build reqwest client")
+        .danger_accept_invalid_certs(true)  // Accept invalid SSL certificates
+        .build()
+        .expect("Failed to build reqwest client")
 });
 
 static ENABLE_CORS: Lazy<bool> = Lazy::new(|| {
@@ -112,7 +91,7 @@ fn get_url(line: &str, base: &Url) -> Url {
 fn process_m3u8_line(
     line: &str,
     scrape_url: &Url,
-    headers_param: &Option<String>,
+    origin_param: &Option<String>,  
 ) -> String {
     if line.is_empty() {
         return String::new();
@@ -134,9 +113,9 @@ fn process_m3u8_line(
                     let mut new_q = String::with_capacity(resolved.as_str().len() + 50);
                     new_q.push_str("url=");
                     new_q.push_str(&urlencoding::encode(resolved.as_str()));
-                    if let Some(h) = headers_param {
-                        new_q.push_str("&headers=");
-                        new_q.push_str(h);
+                    if let Some(o) = origin_param {
+                        new_q.push_str("&origin=");
+                        new_q.push_str(o);
                     }
                     
                     let mut result = String::with_capacity(line.len() + new_q.len());
@@ -158,9 +137,9 @@ fn process_m3u8_line(
             let mut new_q = String::with_capacity(resolved.as_str().len() + 50);
             new_q.push_str("url=");
             new_q.push_str(&urlencoding::encode(resolved.as_str()));
-            if let Some(h) = headers_param {
-                new_q.push_str("&headers=");
-                new_q.push_str(h);
+            if let Some(o) = origin_param {
+                new_q.push_str("&origin=");
+                new_q.push_str(o);
             }
             
             let mut fixed = String::from("#EXT-X-MAP:URI=\"/?");
@@ -195,9 +174,9 @@ fn process_m3u8_line(
                             let mut new_q = String::with_capacity(resolved.as_str().len() + 50);
                             new_q.push_str("url=");
                             new_q.push_str(&urlencoding::encode(resolved.as_str()));
-                            if let Some(h) = headers_param {
-                                new_q.push_str("&headers=");
-                                new_q.push_str(h);
+                            if let Some(o) = origin_param {
+                                new_q.push_str("&origin=");
+                                new_q.push_str(o);
                             }
                             
                             result.push_str(key);
@@ -223,11 +202,11 @@ fn process_m3u8_line(
     let mut new_q = String::with_capacity(resolved.as_str().len() + 50);
     new_q.push_str("url=");
     new_q.push_str(&urlencoding::encode(resolved.as_str()));
-    if let Some(h) = headers_param {
-        new_q.push_str("&headers=");
-        new_q.push_str(h);
+    if let Some(o) = origin_param {
+        new_q.push_str("&origin=");
+        new_q.push_str(&urlencoding::encode(o));
     }
-    
+
     let mut result = String::with_capacity(new_q.len() + 10);
     result.push_str("/?");
     result.push_str(&new_q);
@@ -355,13 +334,7 @@ async fn m3u8_proxy(req: HttpRequest) -> impl Responder {
 
     // Fetch target
     let resp = match CLIENT.get(&target_url).headers(headers).send().await {
-        Ok(r) => {
-            // Log proxy usage if configured
-            if std::env::var("PROXY_HOST").is_ok() {
-                eprintln!("Request to {} routed through proxy", target_url);
-            }
-            r
-        },
+        Ok(r) => r,
         Err(e) => {
             eprintln!("Failed to fetch target URL {}: {:?}", target_url, e);
             return HttpResponse::InternalServerError().body("Failed to fetch target URL");
@@ -393,16 +366,16 @@ async fn m3u8_proxy(req: HttpRequest) -> impl Responder {
         let looks_like_m3u8 = m3u8_text.trim_start().starts_with("#EXTM3U");
         if ct_is_m3u8 || looks_like_m3u8 {
             let scrape_url = Url::parse(&target_url).unwrap();
-            let headers_param = query.get("headers").cloned();
+            let _headers_param = query.get("headers").cloned();
+            let origin_param = query.get("origin").cloned();
             
             // Process m3u8 sequentially
             let lines = m3u8_text.lines();
             let mut processed_lines = Vec::with_capacity(lines.size_hint().0);
             
             for line in lines {
-                processed_lines.push(process_m3u8_line(line, &scrape_url, &headers_param));
+                processed_lines.push(process_m3u8_line(line, &scrape_url, &origin_param));
             }
-
             return HttpResponse::Ok()
                 .insert_header((header::ACCESS_CONTROL_ALLOW_ORIGIN, acao.clone().unwrap_or("*".to_string())))
                 .insert_header((header::ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, OPTIONS, HEAD"))
@@ -493,23 +466,9 @@ async fn m3u8_proxy(req: HttpRequest) -> impl Responder {
 async fn main() -> std::io::Result<()> {
     dotenvy::dotenv().ok();
 
-    println!("We alive bois: http://127.0.0.1:8082");
+    println!("We alive bois: http://127.0.0.1:8080");
     if *ENABLE_CORS {
         println!("Allowed origins: {:?}", *ALLOWED_ORIGINS);
-    }
-
-    // Check and display proxy configuration
-    if let Ok(proxy_host) = std::env::var("PROXY_HOST") {
-        if let Ok(proxy_port) = std::env::var("PROXY_PORT") {
-            let proxy_info = if std::env::var("PROXY_USERNAME").is_ok() {
-                format!("{}:{} (with authentication)", proxy_host, proxy_port)
-            } else {
-                format!("{}:{} (no authentication)", proxy_host, proxy_port)
-            };
-            println!("Proxy configured: {}", proxy_info);
-        }
-    } else {
-        println!("No proxy configured - using direct connection");
     }
 
     HttpServer::new(|| {
@@ -520,7 +479,7 @@ async fn main() -> std::io::Result<()> {
             .route("/", actix_web::web::method(Method::OPTIONS).to(handle_options))
     })
     .workers(num_cpus::get())
-    .bind("0.0.0.0:8082")?
+    .bind("0.0.0.0:8080")?
     .run()
     .await
 }
