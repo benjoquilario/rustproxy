@@ -32,6 +32,7 @@ static DOMAIN_GROUPS: Lazy<Vec<DomainGroup>> = Lazy::new(|| {
                 r"(?i)\.padorupado\.ru$",
                 r"(?i)\.kwikie\.ru$",
                 r"(?i)\.owocdn\.top$",
+                r"(?i)\.uwucdn\.top$",
             ],
             origin: "https://kwik.si",
             referer: "https://kwik.si/",
