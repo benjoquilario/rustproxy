@@ -22,13 +22,13 @@ services:
       - dokploy-network
     labels:
       - 'traefik.enable=true'
-      - 'traefik.http.routers.rust-proxy.rule=Host(`cors.animehi.live`)'
+      - 'traefik.http.routers.rust-proxy.rule=Host(`proxy.animehi.live`)'
       - 'traefik.http.routers.rust-proxy.entrypoints=web,websecure'
       - 'traefik.http.services.rust-proxy.loadbalancer.server.port=8082'
 
       - 'traefik.http.routers.rust-proxy.tls=true'
       - 'traefik.http.routers.rust-proxy.tls.certresolver=le'
-      - 'traefik.http.routers.rust-proxy-http.rule=Host(`cors.animehi.live`)'
+      - 'traefik.http.routers.rust-proxy-http.rule=Host(`proxy.animehi.live`)'
       - 'traefik.http.routers.rust-proxy-http.entrypoints=web'
       - 'traefik.http.routers.rust-proxy-http.middlewares=redirect-to-https'
       - 'traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https'
